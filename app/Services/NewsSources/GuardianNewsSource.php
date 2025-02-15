@@ -3,26 +3,15 @@
 namespace App\Services\NewsSources;
 
 use App\Contracts\NewsSource;
-use App\Models\Category;
-use Illuminate\Support\Facades\Cache;
+use App\Contracts\NewsSourceAdapter;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class GuardianNewsSource implements NewsSource
 {
     private const PAGE_SIZE = 50;
-    private array $validCategories;
 
-    public function __construct()
-    {
-        $this->validCategories = Cache::remember('news_categories', 3600, function () {
-            return Category::where('is_default', false)
-                ->pluck('name')
-                ->toArray();
-        });
-    }
-
-    public function fetch(string $fromDate): array
+    public function fetch(string $fromDate, NewsSourceAdapter $adapter): array
     {
         $page = 1;
         $allArticles = [];
@@ -58,7 +47,7 @@ class GuardianNewsSource implements NewsSource
                 break;
             }
 
-            $allArticles = array_merge($allArticles, $this->processArticles($articles));
+            $allArticles = array_merge($allArticles, $adapter->parse($articles));
 
             if ($page >= $totalPages) {
                 break;
@@ -69,43 +58,5 @@ class GuardianNewsSource implements NewsSource
         }
 
         return $allArticles;
-    }
-
-    private function processArticles(array $articles): array
-    {
-        return array_map(function ($article) {
-            $categories = $this->extractCategories($article);
-
-            return [
-                'title' => $article['fields']['headline'] ?? $article['webTitle'],
-                'content' => $article['fields']['bodyText'] ?? '',
-                'author' => $article['fields']['byline'] ?? null,
-                'source' => 'guardian',
-                'source_name' => 'The Guardian',
-                'external_id' => $article['id'],
-                'url' => $article['webUrl'],
-                'published_at' => $article['webPublicationDate'],
-                'categories' => $categories
-            ];
-        }, $articles);
-    }
-
-    private function extractCategories(array $article): array
-    {
-        $content = strtolower(
-            ($article['fields']['headline'] ?? '') . ' ' .
-                ($article['fields']['bodyText'] ?? '') . ' ' .
-                implode(' ', array_map(fn($tag) => $tag['webTitle'], $article['tags'] ?? []))
-        );
-
-        $foundCategories = [];
-
-        foreach ($this->validCategories as $category) {
-            if (str_contains($content, $category)) {
-                $foundCategories[] = $category;
-            }
-        }
-
-        return $foundCategories;
     }
 }

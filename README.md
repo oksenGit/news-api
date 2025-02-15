@@ -2,11 +2,6 @@
 
 This project is a News API built with Laravel 11, PHP 8.4 and Docker. It includes a web server, application server, database, and a worker for background tasks.
 
-## Prerequisites
-
-- Docker
-- Docker Compose
-
 ## Getting Started
 
 Follow these steps to set up and run the project:
@@ -44,17 +39,55 @@ After the containers are up and running, run the following command to migrate an
 php artisan migrate:fresh --seed
 ```
 
-## Accessing the Application
-
-- The API endpoints will be available at `http://localhost:8082/api`.
-
 ## API Endpoints
 
 - Get the news filtered
-    `GET api/news?page=1&per_page=100&title=Trump&author=Chr&source=newsapi&source_name=CNN&date_from=2025-02-12&date_to=2024-03-20&categories[]=6&categories[]=1`
+    `GET api/news?page=1&per_page=100&title=title&author=chris&source=newsapi&source_name=CNN&date_from=2025-02-12&date_to=2024-03-20&categories[]=6&categories[]=1`
 
 - Get filters `GET /news/filters`
 
 ## Console Commands
 
 `php artisan news:fetch --from="2025-02-15"`
+
+## System Architecture
+
+### Key Components
+
+1. **News Sources**
+   - Located in `app/Services/NewsSources/`
+   - Each source implements the `NewsSourceInterface`
+   - Currently supports:
+     - NewsAPI
+     - The Guardian
+     - New York Times
+
+2. **Command Layer**
+   - `FetchNewsCommand` orchestrates the news fetching process
+   - Dispatches jobs for each configured news source
+   - Manages fetch time tracking and cache invalidation
+
+3. **Job System**
+   - Uses Laravel's queue system
+   - `FetchNewsFromSource` job handles individual source fetching
+   - Jobs run asynchronously for better performance
+
+4. **Repository Layer**
+   - `EloquentNewsRepository` handles all database operations
+   - Implements `NewsRepository` interface
+   - Manages news storage and retrieval with category relationships
+
+5. **Filtering System**
+   - `NewsFiltersService` manages available filters
+   - Supports filtering by title, author, source, date range, and categories
+   - Caches filter options for better performance
+
+### Adding a New News Source
+
+To add a new news source:
+
+1. Add the configs related to the new source in `config/services.php`
+2. Create a new class in `app/Services/NewsSources/` that implements `NewsSourceInterface`:
+3. Create a news source adapter in `app/Services/NewsSources/Adapters/` to map the response to the news model
+4. Add the new source to the `FetchNewsCommand` to be dispatched
+5. map the source to the adapter in the `NewsFetchService`

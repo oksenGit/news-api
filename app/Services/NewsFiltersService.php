@@ -78,4 +78,13 @@ class NewsFiltersService
             'max' => $range->max_date
         ];
     }
+
+    public static function getCachedCategories(): mixed
+    {
+        return Cache::remember('news_categories', 3600, function () {
+            return Category::where('is_default', false)
+                ->pluck('name')
+                ->toArray();
+        });
+    }
 }
