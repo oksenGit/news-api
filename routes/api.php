@@ -1,9 +1,8 @@
 <?php
 
+use App\Http\Controllers\API\NewsController;
+use App\Http\Controllers\API\NewsFiltersController;
 use Illuminate\Support\Facades\Route;
 
-Route::get(
-    '/news',
-    fn() =>
-    response()->json([['title' => 'News 1'], ['title' => 'News 2'], ['title' => 'News 3']])
-);
+Route::get('/news', [NewsController::class, 'index']);
+Route::get('/news/filters', [NewsFiltersController::class, 'index']);

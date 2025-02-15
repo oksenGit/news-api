@@ -39,9 +39,23 @@ services:
       MYSQL_DATABASE: ${DB_DATABASE}
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
       MYSQL_PASSWORD: ${DB_PASSWORD}
-
     ports:
       - "33009:3306"
+
+  worker:
+    build:
+      context: .
+      dockerfile: docker/worker/Dockerfile
+    container_name: news_worker
+    volumes:
+      - .:/var/www
+      - ./docker/worker/supervisor.conf:/etc/supervisor/conf.d/worker.conf
+    depends_on:
+      - app
+      - db
+    networks:
+      - test
+    restart: unless-stopped
 
 volumes:
   test-db:
