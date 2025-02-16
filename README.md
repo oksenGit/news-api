@@ -48,6 +48,7 @@ php artisan migrate:fresh --seed
 
 ## Console Commands
 
+To Fetch news from all news sources manually, --from is optional by default, the latest fetch time is cached and the news is fetched starting from the cached time
 `php artisan news:fetch --from="2025-02-15"`
 
 ## System Architecture
